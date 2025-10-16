@@ -1,0 +1,45 @@
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-mystical-darker text-gray-100 font-sans;
+    margin: 0;
+    min-height: 100vh;
+  }
+}
+
+@layer components {
+  .mystical-gradient {
+    background: linear-gradient(135deg, #0a0a0f 0%, #1a0a2e 50%, #0a0a0f 100%);
+  }
+
+  .spirit-glow {
+    box-shadow: 0 0 20px rgba(139, 92, 246, 0.5), 0 0 40px rgba(139, 92, 246, 0.3);
+  }
+
+  .ouija-board {
+    background: radial-gradient(circle at center, #1a1520 0%, #0a0a0f 70%);
+    border: 2px solid rgba(139, 92, 246, 0.3);
+  }
+
+  .btn-mystical {
+    @apply px-6 py-3 rounded-lg font-semibold transition-all duration-300;
+    @apply bg-gradient-to-r from-mystical-purple to-mystical-purple-dark;
+    @apply hover:shadow-lg hover:shadow-mystical-purple/50;
+    @apply active:scale-95;
+  }
+
+  .glass-effect {
+    background: rgba(26, 21, 32, 0.7);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(139, 92, 246, 0.2);
+  }
+}
