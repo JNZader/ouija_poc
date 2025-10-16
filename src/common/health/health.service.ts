@@ -110,10 +110,7 @@ export class HealthService implements OnModuleInit {
     details?: unknown;
   } {
     if (result.status === 'fulfilled') {
-      return {
-        status: 'healthy',
-        ...result.value,
-      };
+      return result.value;
     } else {
       return {
         status: 'unhealthy',
