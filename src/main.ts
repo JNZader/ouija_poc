@@ -1,14 +1,20 @@
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe, BadRequestException, Logger } from '@nestjs/common';
+import { ValidationPipe, BadRequestException } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import helmet from 'helmet';
 import * as compression from 'compression';
 import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
+import { LoggerService } from './common/logger/logger.service';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
-  const logger = new Logger('Bootstrap');
+  const app = await NestFactory.create(AppModule, {
+    bufferLogs: true,
+  });
+
+  // Set custom logger
+  const logger = app.get(LoggerService);
+  app.useLogger(logger);
 
   // Compression
   app.use(
