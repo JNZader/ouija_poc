@@ -1,12 +1,21 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, BadRequestException, Logger } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import helmet from 'helmet';
 import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './common/filters/http-exception.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const logger = new Logger('Bootstrap');
+
+  // Security headers
+  app.use(
+    helmet({
+      contentSecurityPolicy:
+        process.env.NODE_ENV === 'production' ? undefined : false,
+    }),
+  );
 
   // Global prefix
   app.setGlobalPrefix('api');

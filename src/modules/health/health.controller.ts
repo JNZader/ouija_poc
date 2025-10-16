@@ -1,5 +1,6 @@
 import { Controller, Get } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { SkipThrottle } from '@nestjs/throttler';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { AIService } from '../ouija/services/ai.service';
 
@@ -11,6 +12,7 @@ export class HealthController {
     private aiService: AIService,
   ) {}
 
+  @SkipThrottle()
   @Get()
   @ApiOperation({
     summary: 'Health check básico',
@@ -39,6 +41,7 @@ export class HealthController {
     };
   }
 
+  @SkipThrottle()
   @Get('detailed')
   @ApiOperation({
     summary: 'Health check detallado',
