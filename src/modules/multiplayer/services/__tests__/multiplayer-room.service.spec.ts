@@ -96,11 +96,11 @@ describe('MultiplayerRoomService', () => {
               ...mockRoom,
               spirit: mockSpirit,
             }),
-          },
+          } as never,
           roomParticipant: {
             create: jest.fn().mockResolvedValue(mockParticipant),
-          },
-        });
+          } as never,
+        } as never);
       });
 
       const result = await service.createRoom('1', 'user123', 'TestUser', 'socket123');
