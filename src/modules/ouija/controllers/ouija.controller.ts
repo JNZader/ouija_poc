@@ -1,12 +1,4 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  Param,
-  HttpCode,
-  HttpStatus,
-} from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, HttpCode, HttpStatus } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
@@ -36,8 +28,7 @@ export class OuijaController {
   @Get('spirits')
   @ApiOperation({
     summary: 'Obtener lista de espíritus disponibles',
-    description:
-      'Retorna todos los espíritus activos que pueden ser invocados para una sesión',
+    description: 'Retorna todos los espíritus activos que pueden ser invocados para una sesión',
   })
   @ApiResponse({
     status: 200,
@@ -111,9 +102,7 @@ export class OuijaController {
     description: 'Espíritu no disponible o datos inválidos',
   })
   @ApiNotFoundResponse({ description: 'Espíritu no encontrado' })
-  async createSession(
-    @Body() dto: CreateSessionDto,
-  ): Promise<SessionResponseDto> {
+  async createSession(@Body() dto: CreateSessionDto): Promise<SessionResponseDto> {
     return this.sessionService.createSession(dto);
   }
 
@@ -133,9 +122,7 @@ export class OuijaController {
     description: 'Sesión no activa o mensaje inválido',
   })
   @ApiNotFoundResponse({ description: 'Sesión no encontrada' })
-  async sendMessage(
-    @Body() dto: SendMessageDto,
-  ): Promise<ConversationResponseDto> {
+  async sendMessage(@Body() dto: SendMessageDto): Promise<ConversationResponseDto> {
     return this.sessionService.sendMessage(dto);
   }
 
@@ -185,9 +172,7 @@ export class OuijaController {
     type: SessionHistoryDto,
   })
   @ApiNotFoundResponse({ description: 'Sesión no encontrada' })
-  async getSessionHistory(
-    @Param('token') token: string,
-  ): Promise<SessionHistoryDto> {
+  async getSessionHistory(@Param('token') token: string): Promise<SessionHistoryDto> {
     return this.sessionService.getSessionHistory(token);
   }
 
