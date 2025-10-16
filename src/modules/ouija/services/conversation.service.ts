@@ -1,10 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { AIService } from './ai.service';
 import { PrismaService } from '../../../common/prisma/prisma.service';
-import {
-  SPIRIT_PROMPTS,
-  SpiritPersonality,
-} from '../constants/spirit-prompts';
+import { SPIRIT_PROMPTS, SpiritPersonality } from '../constants/spirit-prompts';
 import { AIMessage } from '../interfaces/ai-engine.interface';
 
 @Injectable()
@@ -49,21 +46,13 @@ export class ConversationService {
       });
 
       // 4. Post-procesar la respuesta
-      const formattedResponse = this.formatSpiritResponse(
-        aiResponse.content,
-        spiritPersonality,
-      );
+      const formattedResponse = this.formatSpiritResponse(aiResponse.content, spiritPersonality);
 
-      this.logger.log(
-        `✅ Response generated for session ${sessionId} using ${aiResponse.engine}`,
-      );
+      this.logger.log(`✅ Response generated for session ${sessionId} using ${aiResponse.engine}`);
 
       return formattedResponse;
     } catch (error) {
-      this.logger.error(
-        `Error generating spirit response: ${error.message}`,
-        error.stack,
-      );
+      this.logger.error(`Error generating spirit response: ${error.message}`, error.stack);
       throw error;
     }
   }
@@ -139,6 +128,7 @@ Recuerda: Mantén tu personalidad en todo momento y responde como ${spiritName}.
    */
   private formatSpiritResponse(
     rawResponse: string,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     personality: SpiritPersonality,
   ): string {
     let formatted = rawResponse.trim();
@@ -173,10 +163,7 @@ Recuerda: Mantén tu personalidad en todo momento y responde como ${spiritName}.
       playful: `¡Ah! Un visitante. ${spiritName} a tu servicio, querido mortal. El teatro del más allá está abierto. ¿Cuál será tu acto?`,
     };
 
-    return (
-      welcomeMessages[spiritPersonality] ||
-      `Soy ${spiritName}. ¿En qué puedo ayudarte?`
-    );
+    return welcomeMessages[spiritPersonality] || `Soy ${spiritName}. ¿En qué puedo ayudarte?`;
   }
 
   /**
@@ -193,9 +180,6 @@ Recuerda: Mantén tu personalidad en todo momento y responde como ${spiritName}.
       playful: `¡El telón cae! ${spiritName} se despide con una reverencia. Fue un placer jugar contigo, querido mortal.`,
     };
 
-    return (
-      farewellMessages[spiritPersonality] ||
-      `Hasta pronto, mortal. ${spiritName} se retira.`
-    );
+    return farewellMessages[spiritPersonality] || `Hasta pronto, mortal. ${spiritName} se retira.`;
   }
 }

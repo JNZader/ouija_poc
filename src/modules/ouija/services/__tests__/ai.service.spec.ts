@@ -8,10 +8,11 @@ const mockedAxios = axios as jest.Mocked<typeof axios>;
 
 describe('AIService', () => {
   let service: AIService;
-  let configService: ConfigService;
 
   const mockConfigService = {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     get: jest.fn((key: string, defaultValue?: any) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const config: Record<string, any> = {
         OLLAMA_URL: 'http://localhost:11434',
         OLLAMA_MODEL: 'qwen2.5:3b',
@@ -33,6 +34,7 @@ describe('AIService', () => {
   beforeEach(async () => {
     jest.clearAllMocks();
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     mockedAxios.create = jest.fn(() => mockAxiosInstance as any);
 
     const module: TestingModule = await Test.createTestingModule({
@@ -46,7 +48,6 @@ describe('AIService', () => {
     }).compile();
 
     service = module.get<AIService>(AIService);
-    configService = module.get<ConfigService>(ConfigService);
   });
 
   it('should be defined', () => {
@@ -79,10 +80,7 @@ describe('AIService', () => {
       expect(result.content).toBe('Respuesta mística del espíritu');
       expect(result.engine).toBe('ollama');
       expect(result.model).toBe('qwen2.5:3b');
-      expect(mockAxiosInstance.post).toHaveBeenCalledWith(
-        '/api/chat',
-        expect.any(Object),
-      );
+      expect(mockAxiosInstance.post).toHaveBeenCalledWith('/api/chat', expect.any(Object));
     });
 
     it('should fallback to DeepSeek when Ollama fails', async () => {
@@ -114,9 +112,7 @@ describe('AIService', () => {
     });
 
     it('should use emergency fallback when all engines fail', async () => {
-      mockAxiosInstance.post.mockRejectedValue(
-        new Error('All engines failed'),
-      );
+      mockAxiosInstance.post.mockRejectedValue(new Error('All engines failed'));
 
       const options = {
         messages: [

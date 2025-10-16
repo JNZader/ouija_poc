@@ -5,8 +5,6 @@ import { PrismaService } from '../../../../common/prisma/prisma.service';
 
 describe('ConversationService', () => {
   let service: ConversationService;
-  let aiService: AIService;
-  let prismaService: PrismaService;
 
   const mockAIService = {
     generate: jest.fn(),
@@ -36,8 +34,6 @@ describe('ConversationService', () => {
     }).compile();
 
     service = module.get<ConversationService>(ConversationService);
-    aiService = module.get<AIService>(AIService);
-    prismaService = module.get<PrismaService>(PrismaService);
   });
 
   it('should be defined', () => {
@@ -101,10 +97,7 @@ describe('ConversationService', () => {
 
   describe('generateWelcomeMessage', () => {
     it('should generate welcome message for wise personality', async () => {
-      const result = await service.generateWelcomeMessage(
-        'wise',
-        'Morgana la Sabia',
-      );
+      const result = await service.generateWelcomeMessage('wise', 'Morgana la Sabia');
 
       expect(result).toContain('Morgana la Sabia');
       expect(result).toContain('Saludos');

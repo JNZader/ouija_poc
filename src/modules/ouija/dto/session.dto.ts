@@ -1,11 +1,4 @@
-import {
-  IsString,
-  IsUUID,
-  IsNotEmpty,
-  IsOptional,
-  MinLength,
-  MaxLength,
-} from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, MinLength, MaxLength } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateSessionDto {

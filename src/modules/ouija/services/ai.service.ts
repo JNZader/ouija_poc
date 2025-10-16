@@ -1,12 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios, { AxiosInstance } from 'axios';
-import {
-  AIEngineConfig,
-  AIMessage,
-  AIResponse,
-  AIGenerateOptions,
-} from '../interfaces/ai-engine.interface';
+import { AIEngineConfig, AIResponse, AIGenerateOptions } from '../interfaces/ai-engine.interface';
 
 @Injectable()
 export class AIService {
@@ -28,10 +23,7 @@ export class AIService {
     const ollamaConfig: AIEngineConfig = {
       name: 'ollama',
       type: 'ollama',
-      baseUrl: this.configService.get<string>(
-        'OLLAMA_URL',
-        'http://localhost:11434',
-      ),
+      baseUrl: this.configService.get<string>('OLLAMA_URL', 'http://localhost:11434'),
       model: this.configService.get<string>('OLLAMA_MODEL', 'qwen2.5:3b'),
       timeout: this.configService.get<number>('OLLAMA_TIMEOUT', 60000),
       enabled: true,
@@ -50,10 +42,7 @@ export class AIService {
     const deepseekConfig: AIEngineConfig = {
       name: 'deepseek',
       type: 'deepseek',
-      baseUrl: this.configService.get<string>(
-        'DEEPSEEK_BASE_URL',
-        'https://api.deepseek.com',
-      ),
+      baseUrl: this.configService.get<string>('DEEPSEEK_BASE_URL', 'https://api.deepseek.com'),
       apiKey: deepseekApiKey,
       timeout: this.configService.get<number>('DEEPSEEK_TIMEOUT', 30000),
       enabled: !!deepseekApiKey,
@@ -73,24 +62,16 @@ export class AIService {
     }
 
     // Motor por defecto
-    this.defaultEngine = this.configService.get<string>(
-      'DEFAULT_AI_ENGINE',
-      'ollama',
-    );
+    this.defaultEngine = this.configService.get<string>('DEFAULT_AI_ENGINE', 'ollama');
 
-    this.logger.log(
-      `✅ AI Engines initialized: ${Array.from(this.engines.keys()).join(', ')}`,
-    );
+    this.logger.log(`✅ AI Engines initialized: ${Array.from(this.engines.keys()).join(', ')}`);
     this.logger.log(`🎯 Default engine: ${this.defaultEngine}`);
   }
 
   /**
    * Genera una respuesta usando el motor de IA especificado o el por defecto
    */
-  async generate(
-    options: AIGenerateOptions,
-    preferredEngine?: string,
-  ): Promise<AIResponse> {
+  async generate(options: AIGenerateOptions, preferredEngine?: string): Promise<AIResponse> {
     const engineName = preferredEngine || this.defaultEngine;
     const startTime = Date.now();
 
@@ -117,9 +98,7 @@ export class AIService {
 
       return response;
     } catch (error) {
-      this.logger.error(
-        `❌ Error with engine ${engineName}: ${error.message}`,
-      );
+      this.logger.error(`❌ Error with engine ${engineName}: ${error.message}`);
 
       // Intentar fallback
       return this.fallbackGenerate(options, engineName, startTime);
@@ -137,12 +116,10 @@ export class AIService {
     this.logger.warn(`🔄 Attempting fallback from ${failedEngine}`);
 
     // Intentar con el otro motor
-    const availableEngines = Array.from(this.engines.keys()).filter(
-      (name) => {
-        const engine = this.engines.get(name);
-        return name !== failedEngine && engine?.enabled;
-      },
-    );
+    const availableEngines = Array.from(this.engines.keys()).filter((name) => {
+      const engine = this.engines.get(name);
+      return name !== failedEngine && engine?.enabled;
+    });
 
     for (const engineName of availableEngines) {
       try {
@@ -162,9 +139,7 @@ export class AIService {
           return response;
         }
       } catch (error) {
-        this.logger.error(
-          `❌ Fallback engine ${engineName} also failed: ${error.message}`,
-        );
+        this.logger.error(`❌ Fallback engine ${engineName} also failed: ${error.message}`);
       }
     }
 
@@ -176,9 +151,7 @@ export class AIService {
   /**
    * Genera respuesta con Ollama
    */
-  private async generateWithOllama(
-    options: AIGenerateOptions,
-  ): Promise<AIResponse> {
+  private async generateWithOllama(options: AIGenerateOptions): Promise<AIResponse> {
     const config = this.engines.get('ollama');
 
     if (!config || !config.enabled) {
@@ -211,9 +184,7 @@ export class AIService {
   /**
    * Genera respuesta con DeepSeek
    */
-  private async generateWithDeepSeek(
-    options: AIGenerateOptions,
-  ): Promise<AIResponse> {
+  private async generateWithDeepSeek(options: AIGenerateOptions): Promise<AIResponse> {
     const config = this.engines.get('deepseek');
 
     if (!config || !config.enabled) {
@@ -229,10 +200,7 @@ export class AIService {
 
     this.logger.debug(`DeepSeek request: ${JSON.stringify(payload)}`);
 
-    const response = await this.deepseekClient.post(
-      '/v1/chat/completions',
-      payload,
-    );
+    const response = await this.deepseekClient.post('/v1/chat/completions', payload);
 
     return {
       content: response.data.choices[0].message.content,
@@ -247,12 +215,10 @@ export class AIService {
    * Genera respuesta de emergencia cuando todos los motores fallan
    */
   private generateFallbackResponse(
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     options: AIGenerateOptions,
     startTime: number,
   ): AIResponse {
-    const lastUserMessage =
-      options.messages.filter((m) => m.role === 'user').pop()?.content || '';
-
     // Templates místicos de emergencia
     const fallbackTemplates = [
       'Las sombras se arremolinan... No puedo ver con claridad en este momento. Los vientos del más allá me confunden.',
@@ -262,8 +228,7 @@ export class AIService {
       'Los espíritus guardianes bloquean mi visión. Hay fuerzas que no desean que hable ahora...',
     ];
 
-    const randomTemplate =
-      fallbackTemplates[Math.floor(Math.random() * fallbackTemplates.length)];
+    const randomTemplate = fallbackTemplates[Math.floor(Math.random() * fallbackTemplates.length)];
 
     this.logger.warn(`Using fallback template: ${randomTemplate}`);
 
@@ -296,9 +261,7 @@ export class AIService {
           health[name] = true;
         }
       } catch (error) {
-        this.logger.warn(
-          `Health check failed for ${name}: ${error.message}`,
-        );
+        this.logger.warn(`Health check failed for ${name}: ${error.message}`);
         health[name] = false;
       }
     }

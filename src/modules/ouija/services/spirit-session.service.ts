@@ -1,9 +1,4 @@
-import {
-  Injectable,
-  Logger,
-  NotFoundException,
-  BadRequestException,
-} from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { ConversationService } from './conversation.service';
 import {
@@ -40,9 +35,7 @@ export class SpiritSessionService {
     }
 
     if (!spirit.isActive) {
-      throw new BadRequestException(
-        `Spirit ${spirit.name} is not available at the moment`,
-      );
+      throw new BadRequestException(`Spirit ${spirit.name} is not available at the moment`);
     }
 
     // Generar token único
@@ -61,11 +54,11 @@ export class SpiritSessionService {
     });
 
     // Generar mensaje de bienvenida
-    const welcomeMessage =
-      await this.conversationService.generateWelcomeMessage(
-        spirit.personality as any,
-        spirit.name,
-      );
+    const welcomeMessage = await this.conversationService.generateWelcomeMessage(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      spirit.personality as any,
+      spirit.name,
+    );
 
     // Guardar mensaje de bienvenida en la base de datos
     await this.prisma.sessionMessage.create({
@@ -106,9 +99,7 @@ export class SpiritSessionService {
     });
 
     if (!session) {
-      throw new NotFoundException(
-        `Session with token ${dto.sessionToken} not found`,
-      );
+      throw new NotFoundException(`Session with token ${dto.sessionToken} not found`);
     }
 
     if (session.status !== 'active') {
@@ -125,14 +116,14 @@ export class SpiritSessionService {
     });
 
     // Generar respuesta del espíritu
-    const spiritResponseContent =
-      await this.conversationService.generateSpiritResponse(
-        session.id,
-        dto.message,
-        session.spirit.personality as any,
-        session.spirit.name,
-        session.spirit.backstory,
-      );
+    const spiritResponseContent = await this.conversationService.generateSpiritResponse(
+      session.id,
+      dto.message,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      session.spirit.personality as any,
+      session.spirit.name,
+      session.spirit.backstory,
+    );
 
     // Guardar respuesta del espíritu
     const spiritMessage = await this.prisma.sessionMessage.create({
@@ -178,9 +169,7 @@ export class SpiritSessionService {
     });
 
     if (!session) {
-      throw new NotFoundException(
-        `Session with token ${sessionToken} not found`,
-      );
+      throw new NotFoundException(`Session with token ${sessionToken} not found`);
     }
 
     return {
@@ -205,9 +194,7 @@ export class SpiritSessionService {
   /**
    * Finaliza una sesión
    */
-  async endSession(
-    sessionToken: string,
-  ): Promise<{ message: string; endedAt: Date }> {
+  async endSession(sessionToken: string): Promise<{ message: string; endedAt: Date }> {
     this.logger.log(`Ending session: ${sessionToken}`);
 
     const session = await this.prisma.ouijaSession.findUnique({
@@ -216,9 +203,7 @@ export class SpiritSessionService {
     });
 
     if (!session) {
-      throw new NotFoundException(
-        `Session with token ${sessionToken} not found`,
-      );
+      throw new NotFoundException(`Session with token ${sessionToken} not found`);
     }
 
     if (session.status !== 'active') {
@@ -226,11 +211,11 @@ export class SpiritSessionService {
     }
 
     // Generar mensaje de despedida
-    const farewellMessage =
-      await this.conversationService.generateFarewellMessage(
-        session.spirit.personality as any,
-        session.spirit.name,
-      );
+    const farewellMessage = await this.conversationService.generateFarewellMessage(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      session.spirit.personality as any,
+      session.spirit.name,
+    );
 
     // Guardar mensaje de despedida
     await this.prisma.sessionMessage.create({

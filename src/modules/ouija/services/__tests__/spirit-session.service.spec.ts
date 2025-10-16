@@ -6,8 +6,6 @@ import { ConversationService } from '../conversation.service';
 
 describe('SpiritSessionService', () => {
   let service: SpiritSessionService;
-  let prismaService: PrismaService;
-  let conversationService: ConversationService;
 
   const mockPrismaService = {
     spirit: {
@@ -56,8 +54,6 @@ describe('SpiritSessionService', () => {
     }).compile();
 
     service = module.get<SpiritSessionService>(SpiritSessionService);
-    prismaService = module.get<PrismaService>(PrismaService);
-    conversationService = module.get<ConversationService>(ConversationService);
   });
 
   it('should be defined', () => {
@@ -78,9 +74,7 @@ describe('SpiritSessionService', () => {
         multiplayerRoomId: null,
         spirit: mockSpirit,
       });
-      mockConversationService.generateWelcomeMessage.mockResolvedValue(
-        'Bienvenido, mortal',
-      );
+      mockConversationService.generateWelcomeMessage.mockResolvedValue('Bienvenido, mortal');
       mockPrismaService.sessionMessage.create.mockResolvedValue({});
 
       const result = await service.createSession({ spiritId: mockSpirit.id });
@@ -96,9 +90,7 @@ describe('SpiritSessionService', () => {
     it('should throw NotFoundException if spirit not found', async () => {
       mockPrismaService.spirit.findUnique.mockResolvedValue(null);
 
-      await expect(
-        service.createSession({ spiritId: 999 }),
-      ).rejects.toThrow(NotFoundException);
+      await expect(service.createSession({ spiritId: 999 })).rejects.toThrow(NotFoundException);
     });
 
     it('should throw BadRequestException if spirit is not active', async () => {
@@ -107,9 +99,9 @@ describe('SpiritSessionService', () => {
         isActive: false,
       });
 
-      await expect(
-        service.createSession({ spiritId: mockSpirit.id }),
-      ).rejects.toThrow(BadRequestException);
+      await expect(service.createSession({ spiritId: mockSpirit.id })).rejects.toThrow(
+        BadRequestException,
+      );
     });
   });
 
@@ -127,9 +119,7 @@ describe('SpiritSessionService', () => {
     };
 
     it('should send message and receive spirit response', async () => {
-      mockPrismaService.ouijaSession.findUnique.mockResolvedValue(
-        mockSession,
-      );
+      mockPrismaService.ouijaSession.findUnique.mockResolvedValue(mockSession);
       mockPrismaService.sessionMessage.create
         .mockResolvedValueOnce({
           id: 1,
@@ -149,9 +139,7 @@ describe('SpiritSessionService', () => {
           username: null,
           metadata: null,
         });
-      mockConversationService.generateSpiritResponse.mockResolvedValue(
-        'Tu destino es brillante',
-      );
+      mockConversationService.generateSpiritResponse.mockResolvedValue('Tu destino es brillante');
 
       const result = await service.sendMessage({
         sessionToken: 'sess_abc123',
@@ -244,9 +232,7 @@ describe('SpiritSessionService', () => {
         multiplayerRoomId: null,
         spirit: mockSpirit,
       });
-      mockConversationService.generateFarewellMessage.mockResolvedValue(
-        'Hasta pronto',
-      );
+      mockConversationService.generateFarewellMessage.mockResolvedValue('Hasta pronto');
       mockPrismaService.sessionMessage.create.mockResolvedValue({});
       mockPrismaService.ouijaSession.update.mockResolvedValue({
         id: 1,
