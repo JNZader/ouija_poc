@@ -1,11 +1,14 @@
-import { Module } from '@nestjs/common';
+import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 import { PrismaModule } from './common/prisma/prisma.module';
+import { LoggerModule } from './common/logger/logger.module';
+import { MetricsModule } from './common/metrics/metrics.module';
+import { HealthModule } from './common/health/health.module';
+import { MetricsMiddleware } from './common/middleware/metrics.middleware';
 import { OuijaModule } from './modules/ouija/ouija.module';
 import { MultiplayerModule } from './modules/multiplayer/multiplayer.module';
-import { HealthModule } from './modules/health/health.module';
 
 @Module({
   imports: [
@@ -30,10 +33,14 @@ import { HealthModule } from './modules/health/health.module';
         limit: 100, // 100 requests por minuto
       },
     ]),
+    // Global modules
     PrismaModule,
+    LoggerModule,
+    MetricsModule,
+    HealthModule,
+    // Feature modules
     OuijaModule,
     MultiplayerModule,
-    HealthModule,
   ],
   providers: [
     {
@@ -42,4 +49,9 @@ import { HealthModule } from './modules/health/health.module';
     },
   ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    // Apply metrics middleware to all routes
+    consumer.apply(MetricsMiddleware).forRoutes('*');
+  }
+}
