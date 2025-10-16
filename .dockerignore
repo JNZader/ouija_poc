@@ -57,8 +57,6 @@ logs/
 .eslintrc.js
 .prettierrc
 .editorconfig
-tsconfig*.json
-nest-cli.json
 
 # Scripts
 scripts/
