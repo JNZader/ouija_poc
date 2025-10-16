@@ -182,4 +182,46 @@ Recuerda: Mantén tu personalidad en todo momento y responde como ${spiritName}.
 
     return farewellMessages[spiritPersonality] || `Hasta pronto, mortal. ${spiritName} se retira.`;
   }
+
+  /**
+   * Genera una respuesta del espíritu basada en historial (para multiplayer)
+   * No necesita sessionId porque el historial viene del parámetro
+   */
+  async generateMultiplayerResponse(
+    spiritPersonality: SpiritPersonality,
+    spiritName: string,
+    spiritBackstory: string,
+    conversationHistory: Array<{ role: string; content: string }>,
+    userMessage: string,
+  ): Promise<string> {
+    this.logger.debug(`Generating multiplayer response for spirit ${spiritName}`);
+
+    try {
+      // Construir el contexto de la conversación
+      const messages = this.buildConversationContext(
+        spiritPersonality,
+        spiritName,
+        spiritBackstory,
+        conversationHistory,
+        userMessage,
+      );
+
+      // Generar respuesta con IA
+      const aiResponse = await this.aiService.generate({
+        messages,
+        temperature: 0.9,
+        maxTokens: 300,
+      });
+
+      // Post-procesar la respuesta
+      const formattedResponse = this.formatSpiritResponse(aiResponse.content, spiritPersonality);
+
+      this.logger.log(`✅ Multiplayer response generated using ${aiResponse.engine}`);
+
+      return formattedResponse;
+    } catch (error) {
+      this.logger.error(`Error generating multiplayer spirit response: ${error.message}`, error.stack);
+      throw error;
+    }
+  }
 }
