@@ -13,12 +13,7 @@ import { Logger, UseFilters, UsePipes, ValidationPipe } from '@nestjs/common';
 import { MultiplayerRoomService } from '../services/multiplayer-room.service';
 import { ConversationService } from '../../ouija/services/conversation.service';
 import { WsExceptionFilter } from '../filters/ws-exception.filter';
-import {
-  CreateRoomDto,
-  JoinRoomDto,
-  LeaveRoomDto,
-  SendMessageDto,
-} from '../dto/multiplayer.dto';
+import { CreateRoomDto, JoinRoomDto, LeaveRoomDto, SendMessageDto } from '../dto/multiplayer.dto';
 import {
   ClientToServerEvents,
   ServerToClientEvents,
@@ -33,9 +28,7 @@ import {
 })
 @UseFilters(new WsExceptionFilter())
 @UsePipes(new ValidationPipe({ transform: true }))
-export class MultiplayerGateway
-  implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
-{
+export class MultiplayerGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Server<ClientToServerEvents, ServerToClientEvents>;
 
@@ -46,7 +39,7 @@ export class MultiplayerGateway
     private readonly conversationService: ConversationService,
   ) {}
 
-  afterInit(server: Server) {
+  afterInit() {
     this.logger.log('WebSocket Gateway initialized');
   }
 
@@ -59,13 +52,11 @@ export class MultiplayerGateway
 
     try {
       // Remover participante de cualquier sala
-      const roomCode =
-        await this.roomService.removeParticipantBySocketId(client.id);
+      const roomCode = await this.roomService.removeParticipantBySocketId(client.id);
 
       if (roomCode) {
         // Notificar a otros participantes
-        const participants =
-          await this.roomService.getRoomParticipants(roomCode);
+        const participants = await this.roomService.getRoomParticipants(roomCode);
 
         this.server.to(roomCode).emit('user-left', {
           username: 'Unknown',
@@ -82,10 +73,7 @@ export class MultiplayerGateway
         }
       }
     } catch (error) {
-      this.logger.error(
-        `Error handling disconnect for ${client.id}:`,
-        error.message,
-      );
+      this.logger.error(`Error handling disconnect for ${client.id}:`, error.message);
     }
   }
 
@@ -93,10 +81,7 @@ export class MultiplayerGateway
    * Crear una nueva sala
    */
   @SubscribeMessage('create-room')
-  async handleCreateRoom(
-    @MessageBody() data: CreateRoomDto,
-    @ConnectedSocket() client: Socket,
-  ) {
+  async handleCreateRoom(@MessageBody() data: CreateRoomDto, @ConnectedSocket() client: Socket) {
     try {
       const roomData = await this.roomService.createRoom(
         data.spiritId,
@@ -111,9 +96,7 @@ export class MultiplayerGateway
       // Enviar respuesta al creador
       client.emit('room-created', roomData);
 
-      this.logger.log(
-        `Room ${roomData.roomCode} created by ${data.username}`,
-      );
+      this.logger.log(`Room ${roomData.roomCode} created by ${data.username}`);
     } catch (error) {
       this.logger.error('Error creating room:', error.message);
       client.emit('error', {
@@ -127,10 +110,7 @@ export class MultiplayerGateway
    * Unirse a una sala existente
    */
   @SubscribeMessage('join-room')
-  async handleJoinRoom(
-    @MessageBody() data: JoinRoomDto,
-    @ConnectedSocket() client: Socket,
-  ) {
+  async handleJoinRoom(@MessageBody() data: JoinRoomDto, @ConnectedSocket() client: Socket) {
     try {
       const roomData = await this.roomService.joinRoom(
         data.roomCode,
@@ -178,10 +158,7 @@ export class MultiplayerGateway
    * Salir de una sala
    */
   @SubscribeMessage('leave-room')
-  async handleLeaveRoom(
-    @MessageBody() data: LeaveRoomDto,
-    @ConnectedSocket() client: Socket,
-  ) {
+  async handleLeaveRoom(@MessageBody() data: LeaveRoomDto, @ConnectedSocket() client: Socket) {
     try {
       await this.roomService.leaveRoom(data.roomCode, data.userId);
 
@@ -189,8 +166,7 @@ export class MultiplayerGateway
       await client.leave(data.roomCode);
 
       // Obtener participantes actualizados
-      const participants =
-        await this.roomService.getRoomParticipants(data.roomCode);
+      const participants = await this.roomService.getRoomParticipants(data.roomCode);
 
       // Notificar a otros participantes
       this.server.to(data.roomCode).emit('user-left', {
@@ -221,10 +197,7 @@ export class MultiplayerGateway
    * Enviar mensaje en una sala
    */
   @SubscribeMessage('send-message')
-  async handleSendMessage(
-    @MessageBody() data: SendMessageDto,
-    @ConnectedSocket() client: Socket,
-  ) {
+  async handleSendMessage(@MessageBody() data: SendMessageDto, @ConnectedSocket() client: Socket) {
     try {
       // Guardar mensaje del usuario
       const userMessage = await this.roomService.saveMessage(
@@ -255,7 +228,7 @@ export class MultiplayerGateway
 
       // Generar respuesta del espíritu
       const spiritResponse = await this.conversationService.generateMultiplayerResponse(
-        room.spirit.personality as any,
+        room.spirit.personality as 'wise' | 'cryptic' | 'dark' | 'playful',
         room.spirit.name,
         room.spirit.backstory,
         conversationHistory,
@@ -277,9 +250,7 @@ export class MultiplayerGateway
         timestamp: spiritMessage.createdAt,
       });
 
-      this.logger.log(
-        `Message sent in room ${data.roomCode} by ${data.username}`,
-      );
+      this.logger.log(`Message sent in room ${data.roomCode} by ${data.username}`);
     } catch (error) {
       this.logger.error('Error sending message:', error.message);
       client.emit('error', {

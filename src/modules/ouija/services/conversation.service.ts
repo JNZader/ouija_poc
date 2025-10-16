@@ -220,7 +220,10 @@ Recuerda: Mantén tu personalidad en todo momento y responde como ${spiritName}.
 
       return formattedResponse;
     } catch (error) {
-      this.logger.error(`Error generating multiplayer spirit response: ${error.message}`, error.stack);
+      this.logger.error(
+        `Error generating multiplayer spirit response: ${error.message}`,
+        error.stack,
+      );
       throw error;
     }
   }

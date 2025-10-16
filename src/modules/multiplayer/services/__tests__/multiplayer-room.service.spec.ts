@@ -89,7 +89,7 @@ describe('MultiplayerRoomService', () => {
     it('should create a room successfully', async () => {
       jest.spyOn(prismaService.spirit, 'findFirst').mockResolvedValue(mockSpirit);
       jest.spyOn(prismaService.multiplayerRoom, 'findUnique').mockResolvedValue(null);
-      jest.spyOn(prismaService, '$transaction').mockImplementation(async (callback: any) => {
+      jest.spyOn(prismaService, '$transaction').mockImplementation(async (callback) => {
         return callback({
           multiplayerRoom: {
             create: jest.fn().mockResolvedValue({
@@ -115,9 +115,9 @@ describe('MultiplayerRoomService', () => {
     it('should throw NotFoundException if spirit not found', async () => {
       jest.spyOn(prismaService.spirit, 'findFirst').mockResolvedValue(null);
 
-      await expect(
-        service.createRoom('999', 'user123', 'TestUser', 'socket123'),
-      ).rejects.toThrow(NotFoundException);
+      await expect(service.createRoom('999', 'user123', 'TestUser', 'socket123')).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
@@ -126,16 +126,18 @@ describe('MultiplayerRoomService', () => {
       jest.spyOn(prismaService.multiplayerRoom, 'findUnique').mockResolvedValue({
         ...mockRoom,
         participants: [mockParticipant],
-      } as any);
+      } as never);
       jest.spyOn(prismaService.roomParticipant, 'create').mockResolvedValue({
         ...mockParticipant,
         userId: 'user456',
         username: 'NewUser',
       });
-      jest.spyOn(prismaService.roomParticipant, 'findMany').mockResolvedValue([
-        mockParticipant,
-        { ...mockParticipant, userId: 'user456', username: 'NewUser', id: 2 },
-      ]);
+      jest
+        .spyOn(prismaService.roomParticipant, 'findMany')
+        .mockResolvedValue([
+          mockParticipant,
+          { ...mockParticipant, userId: 'user456', username: 'NewUser', id: 2 },
+        ]);
 
       const result = await service.joinRoom('ABC12345', 'user456', 'NewUser', 'socket456');
 
@@ -146,9 +148,9 @@ describe('MultiplayerRoomService', () => {
     it('should throw NotFoundException if room not found', async () => {
       jest.spyOn(prismaService.multiplayerRoom, 'findUnique').mockResolvedValue(null);
 
-      await expect(
-        service.joinRoom('INVALID', 'user456', 'NewUser', 'socket456'),
-      ).rejects.toThrow(NotFoundException);
+      await expect(service.joinRoom('INVALID', 'user456', 'NewUser', 'socket456')).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('should throw BadRequestException if room is full', async () => {
@@ -161,18 +163,18 @@ describe('MultiplayerRoomService', () => {
       jest.spyOn(prismaService.multiplayerRoom, 'findUnique').mockResolvedValue({
         ...mockRoom,
         participants: fullParticipants,
-      } as any);
+      } as never);
 
-      await expect(
-        service.joinRoom('ABC12345', 'user456', 'NewUser', 'socket456'),
-      ).rejects.toThrow(BadRequestException);
+      await expect(service.joinRoom('ABC12345', 'user456', 'NewUser', 'socket456')).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('should throw BadRequestException if user already in room', async () => {
       jest.spyOn(prismaService.multiplayerRoom, 'findUnique').mockResolvedValue({
         ...mockRoom,
         participants: [mockParticipant],
-      } as any);
+      } as never);
 
       await expect(
         service.joinRoom('ABC12345', 'user123', 'TestUser', 'socket456'),
@@ -185,7 +187,7 @@ describe('MultiplayerRoomService', () => {
       jest.spyOn(prismaService.multiplayerRoom, 'findUnique').mockResolvedValue({
         ...mockRoom,
         participants: [mockParticipant],
-      } as any);
+      } as never);
       jest.spyOn(prismaService.roomParticipant, 'updateMany').mockResolvedValue({ count: 1 });
       jest.spyOn(prismaService.roomParticipant, 'count').mockResolvedValue(1);
 
@@ -198,7 +200,7 @@ describe('MultiplayerRoomService', () => {
       jest.spyOn(prismaService.multiplayerRoom, 'findUnique').mockResolvedValue({
         ...mockRoom,
         participants: [mockParticipant],
-      } as any);
+      } as never);
       jest.spyOn(prismaService.roomParticipant, 'updateMany').mockResolvedValue({ count: 1 });
       jest.spyOn(prismaService.roomParticipant, 'count').mockResolvedValue(0);
       jest.spyOn(prismaService.multiplayerRoom, 'update').mockResolvedValue({
@@ -222,7 +224,7 @@ describe('MultiplayerRoomService', () => {
       jest.spyOn(prismaService.multiplayerRoom, 'findUnique').mockResolvedValue({
         ...mockRoom,
         participants: [mockParticipant],
-      } as any);
+      } as never);
 
       const result = await service.getRoomParticipants('ABC12345');
 
@@ -234,9 +236,7 @@ describe('MultiplayerRoomService', () => {
     it('should throw NotFoundException if room not found', async () => {
       jest.spyOn(prismaService.multiplayerRoom, 'findUnique').mockResolvedValue(null);
 
-      await expect(service.getRoomParticipants('INVALID')).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(service.getRoomParticipants('INVALID')).rejects.toThrow(NotFoundException);
     });
   });
 
@@ -245,7 +245,7 @@ describe('MultiplayerRoomService', () => {
       jest.spyOn(prismaService.roomParticipant, 'findFirst').mockResolvedValue({
         ...mockParticipant,
         room: mockRoom,
-      } as any);
+      } as never);
       jest.spyOn(prismaService.roomParticipant, 'update').mockResolvedValue(mockParticipant);
       jest.spyOn(prismaService.roomParticipant, 'count').mockResolvedValue(1);
 
@@ -290,7 +290,7 @@ describe('MultiplayerRoomService', () => {
       jest.spyOn(prismaService.multiplayerRoom, 'findUnique').mockResolvedValue({
         ...mockRoom,
         sessions: [mockSession],
-      } as any);
+      } as never);
       jest.spyOn(prismaService.sessionMessage, 'create').mockResolvedValue(mockMessage);
 
       const result = await service.saveMessage('ABC12345', 'user', 'Hello spirit', 'TestUser');
@@ -324,7 +324,7 @@ describe('MultiplayerRoomService', () => {
       jest.spyOn(prismaService.multiplayerRoom, 'findUnique').mockResolvedValue({
         ...mockRoom,
         sessions: [],
-      } as any);
+      } as never);
       jest.spyOn(prismaService.ouijaSession, 'create').mockResolvedValue(mockSession);
       jest.spyOn(prismaService.sessionMessage, 'create').mockResolvedValue(mockMessage);
 

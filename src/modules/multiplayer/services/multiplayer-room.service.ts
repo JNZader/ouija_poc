@@ -1,9 +1,4 @@
-import {
-  Injectable,
-  NotFoundException,
-  BadRequestException,
-  Logger,
-} from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import {
   ParticipantData,
@@ -153,9 +148,7 @@ export class MultiplayerRoomService {
     }
 
     // Verificar si el usuario ya está en la sala
-    const existingParticipant = room.participants.find(
-      (p) => p.userId === userId && p.isActive,
-    );
+    const existingParticipant = room.participants.find((p) => p.userId === userId && p.isActive);
 
     if (existingParticipant) {
       throw new BadRequestException('User already in room');
@@ -352,12 +345,7 @@ export class MultiplayerRoomService {
   /**
    * Guardar mensaje en la base de datos
    */
-  async saveMessage(
-    roomCode: string,
-    role: 'user' | 'spirit',
-    content: string,
-    username?: string,
-  ): Promise<any> {
+  async saveMessage(roomCode: string, role: 'user' | 'spirit', content: string, username?: string) {
     const room = await this.prisma.multiplayerRoom.findUnique({
       where: { roomCode },
       include: {

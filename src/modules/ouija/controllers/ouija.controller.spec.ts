@@ -92,15 +92,11 @@ describe('OuijaController', () => {
         endedAt: null,
       };
 
-      (sessionService.getSessionHistory as jest.Mock).mockResolvedValue(
-        mockHistory,
-      );
+      (sessionService.getSessionHistory as jest.Mock).mockResolvedValue(mockHistory);
 
       const result = await controller.getSessionStatus('test-token');
 
-      expect(sessionService.getSessionHistory).toHaveBeenCalledWith(
-        'test-token',
-      );
+      expect(sessionService.getSessionHistory).toHaveBeenCalledWith('test-token');
       expect(result).toEqual({
         sessionToken: 'test-token',
         status: 'active',

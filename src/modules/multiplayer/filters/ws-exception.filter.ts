@@ -20,9 +20,7 @@ export class WsExceptionFilter extends BaseWsExceptionFilter {
       errorMessage = exception.message;
     }
 
-    this.logger.error(
-      `WebSocket error for client ${client.id}: ${errorMessage}`,
-    );
+    this.logger.error(`WebSocket error for client ${client.id}: ${errorMessage}`);
 
     client.emit('error', {
       code: errorCode,
