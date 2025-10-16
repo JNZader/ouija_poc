@@ -2,12 +2,21 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, BadRequestException, Logger } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import helmet from 'helmet';
+import * as compression from 'compression';
 import { AppModule } from './app.module';
-import { AllExceptionsFilter } from './common/filters/http-exception.filter';
+import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const logger = new Logger('Bootstrap');
+
+  // Compression
+  app.use(
+    compression({
+      threshold: 1024, // Solo comprimir respuestas >1KB
+      level: 6, // Nivel de compresión (0-9)
+    }),
+  );
 
   // Security headers
   app.use(
