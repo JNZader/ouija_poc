@@ -27,8 +27,12 @@ COPY --from=dependencies /app/node_modules ./node_modules
 COPY --from=dependencies /app/package*.json ./
 COPY --from=dependencies /app/prisma ./prisma/
 
+# Copy configuration files
+COPY tsconfig*.json ./
+COPY nest-cli.json ./
+
 # Copy source code
-COPY . .
+COPY src ./src
 
 # Generate Prisma Client
 RUN npx prisma generate
