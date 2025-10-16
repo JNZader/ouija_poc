@@ -19,6 +19,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
     let status = HttpStatus.INTERNAL_SERVER_ERROR;
     let message = 'Internal server error';
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let errors: any = null;
 
     if (exception instanceof HttpException) {
@@ -28,7 +29,9 @@ export class AllExceptionsFilter implements ExceptionFilter {
       if (typeof exceptionResponse === 'string') {
         message = exceptionResponse;
       } else if (typeof exceptionResponse === 'object') {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         message = (exceptionResponse as any).message || message;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         errors = (exceptionResponse as any).errors || null;
       }
     } else if (exception instanceof Error) {
