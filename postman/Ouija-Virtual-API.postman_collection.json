@@ -1,0 +1,164 @@
+{
+  "info": {
+    "name": "Ouija Virtual API",
+    "description": "Colección completa de endpoints para la API de Ouija Virtual",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "version": "1.0.0"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000/api",
+      "type": "string"
+    },
+    {
+      "key": "sessionToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "spiritId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/health"
+          }
+        },
+        {
+          "name": "Detailed Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/health/detailed"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Spirits",
+      "item": [
+        {
+          "name": "Get Available Spirits",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', () => {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const spirits = pm.response.json();",
+                  "if (spirits.length > 0) {",
+                  "    pm.collectionVariables.set('spiritId', spirits[0].id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/ouija/spirits"
+          }
+        },
+        {
+          "name": "Get Spirit By ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/ouija/spirits/{{spiritId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Session",
+      "item": [
+        {
+          "name": "Create Session",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201', () => {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "pm.collectionVariables.set('sessionToken', jsonData.sessionToken);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"spiritId\": {{spiritId}},\n  \"userId\": \"user_test_123\"\n}"
+            },
+            "url": "{{baseUrl}}/ouija/session/create"
+          }
+        },
+        {
+          "name": "Send Message",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sessionToken\": \"{{sessionToken}}\",\n  \"message\": \"¿Cuál es mi destino?\"\n}"
+            },
+            "url": "{{baseUrl}}/ouija/session/ask"
+          }
+        },
+        {
+          "name": "Get Session History",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/ouija/session/{{sessionToken}}/history"
+          }
+        },
+        {
+          "name": "Get Session Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/ouija/session/{{sessionToken}}/status"
+          }
+        },
+        {
+          "name": "End Session",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/ouija/session/{{sessionToken}}/end"
+          }
+        }
+      ]
+    }
+  ]
+}
