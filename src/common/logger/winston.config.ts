@@ -78,10 +78,6 @@ export const winstonConfig: WinstonModuleOptions = {
     winston.format.metadata({ fillExcept: ['message', 'level', 'timestamp', 'label'] }),
   ),
   transports,
-  exceptionHandlers: [
-    new winston.transports.File({ filename: 'logs/exceptions.log' }),
-  ],
-  rejectionHandlers: [
-    new winston.transports.File({ filename: 'logs/rejections.log' }),
-  ],
+  exceptionHandlers: [new winston.transports.File({ filename: 'logs/exceptions.log' })],
+  rejectionHandlers: [new winston.transports.File({ filename: 'logs/rejections.log' })],
 };

@@ -26,12 +26,7 @@ export class MetricsService {
   };
 
   // HTTP Metrics
-  recordHttpRequest(
-    method: string,
-    route: string,
-    statusCode: number,
-    duration: number,
-  ) {
+  recordHttpRequest(method: string, route: string, statusCode: number, duration: number) {
     const key = `${method}:${route}:${statusCode}`;
     const existing = this.httpMetrics.get(key);
 
@@ -54,8 +49,16 @@ export class MetricsService {
   }
 
   getHttpMetrics() {
-    const metrics: any[] = [];
-    this.httpMetrics.forEach((metric, key) => {
+    const metrics: {
+      method: string;
+      route: string;
+      statusCode: number;
+      count: number;
+      avgDuration: number;
+      minDuration: number;
+      maxDuration: number;
+    }[] = [];
+    this.httpMetrics.forEach((metric) => {
       const avgDuration = metric.totalDuration / metric.count;
       metrics.push({
         method: metric.method,
@@ -93,7 +96,7 @@ export class MetricsService {
   }
 
   getWsMetrics() {
-    const metrics: any[] = [];
+    const metrics: { event: string; count: number }[] = [];
     this.wsMetrics.forEach((metric) => {
       metrics.push({
         event: metric.event,
@@ -104,11 +107,7 @@ export class MetricsService {
   }
 
   // AI Metrics
-  recordAiRequest(
-    engine: 'ollama' | 'deepseek',
-    success: boolean,
-    duration: number,
-  ) {
+  recordAiRequest(engine: 'ollama' | 'deepseek', success: boolean, duration: number) {
     const engineMetrics = this.aiRequests[engine];
     engineMetrics.total++;
     if (success) {
@@ -125,36 +124,22 @@ export class MetricsService {
         ...this.aiRequests.ollama,
         avgDuration:
           this.aiRequests.ollama.total > 0
-            ? Math.round(
-                this.aiRequests.ollama.totalDuration /
-                  this.aiRequests.ollama.total,
-              )
+            ? Math.round(this.aiRequests.ollama.totalDuration / this.aiRequests.ollama.total)
             : 0,
         successRate:
           this.aiRequests.ollama.total > 0
-            ? (
-                (this.aiRequests.ollama.success /
-                  this.aiRequests.ollama.total) *
-                100
-              ).toFixed(2)
+            ? ((this.aiRequests.ollama.success / this.aiRequests.ollama.total) * 100).toFixed(2)
             : '0.00',
       },
       deepseek: {
         ...this.aiRequests.deepseek,
         avgDuration:
           this.aiRequests.deepseek.total > 0
-            ? Math.round(
-                this.aiRequests.deepseek.totalDuration /
-                  this.aiRequests.deepseek.total,
-              )
+            ? Math.round(this.aiRequests.deepseek.totalDuration / this.aiRequests.deepseek.total)
             : 0,
         successRate:
           this.aiRequests.deepseek.total > 0
-            ? (
-                (this.aiRequests.deepseek.success /
-                  this.aiRequests.deepseek.total) *
-                100
-              ).toFixed(2)
+            ? ((this.aiRequests.deepseek.success / this.aiRequests.deepseek.total) * 100).toFixed(2)
             : '0.00',
       },
     };
@@ -174,12 +159,9 @@ export class MetricsService {
     });
 
     // HTTP request duration
-    lines.push(
-      '# HELP http_request_duration_ms HTTP request duration in milliseconds',
-    );
+    lines.push('# HELP http_request_duration_ms HTTP request duration in milliseconds');
     lines.push('# TYPE http_request_duration_ms histogram');
     this.httpMetrics.forEach((metric) => {
-      const avgDuration = metric.totalDuration / metric.count;
       lines.push(
         `http_request_duration_ms_bucket{method="${metric.method}",route="${metric.route}",le="50",service="ouija-api"} ${metric.count}`,
       );
@@ -194,9 +176,7 @@ export class MetricsService {
     // WebSocket connections
     lines.push('# HELP websocket_connections Active WebSocket connections');
     lines.push('# TYPE websocket_connections gauge');
-    lines.push(
-      `websocket_connections{service="ouija-api"} ${this.wsConnections}`,
-    );
+    lines.push(`websocket_connections{service="ouija-api"} ${this.wsConnections}`);
 
     // AI requests
     lines.push('# HELP ai_requests_total Total number of AI requests');

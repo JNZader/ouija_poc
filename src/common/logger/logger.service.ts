@@ -5,9 +5,7 @@ import { Inject } from '@nestjs/common';
 
 @Injectable()
 export class LoggerService implements NestLoggerService {
-  constructor(
-    @Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger,
-  ) {}
+  constructor(@Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger) {}
 
   log(message: string, context?: string, meta?: object) {
     this.logger.info(message, { context, ...meta });
@@ -30,13 +28,7 @@ export class LoggerService implements NestLoggerService {
   }
 
   // Custom methods for structured logging
-  logRequest(
-    method: string,
-    url: string,
-    statusCode: number,
-    duration: number,
-    userId?: string,
-  ) {
+  logRequest(method: string, url: string, statusCode: number, duration: number, userId?: string) {
     this.logger.info('HTTP Request', {
       context: 'HTTP',
       method,
@@ -64,12 +56,7 @@ export class LoggerService implements NestLoggerService {
     });
   }
 
-  logWebSocketEvent(
-    event: string,
-    roomId?: string,
-    userId?: string,
-    meta?: object,
-  ) {
+  logWebSocketEvent(event: string, roomId?: string, userId?: string, meta?: object) {
     this.logger.info('WebSocket Event', {
       context: 'WebSocket',
       event,
@@ -79,12 +66,7 @@ export class LoggerService implements NestLoggerService {
     });
   }
 
-  logDatabaseQuery(
-    operation: string,
-    table: string,
-    duration: number,
-    success: boolean,
-  ) {
+  logDatabaseQuery(operation: string, table: string, duration: number, success: boolean) {
     this.logger.debug('Database Query', {
       context: 'Database',
       operation,

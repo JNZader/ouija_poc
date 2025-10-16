@@ -104,9 +104,11 @@ export class HealthService implements OnModuleInit {
     }
   }
 
-  private getStatusFromPromise(
-    result: PromiseSettledResult<any>,
-  ): { status: string; details?: any } {
+  private getStatusFromPromise(result: PromiseSettledResult<{ status: string; latency: number }>): {
+    status: string;
+    latency?: number;
+    details?: unknown;
+  } {
     if (result.status === 'fulfilled') {
       return {
         status: 'healthy',
