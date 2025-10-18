@@ -1,0 +1,183 @@
+# ==============================================
+# Docker Compose - Ouija Virtual Backend Simple
+# ==============================================
+#
+# Este archivo configura todos los servicios necesarios para
+# desarrollo local del backend.
+#
+# Servicios:
+# 1. backend - NestJS backend (puerto 3001)
+# 2. ollama - Ollama AI service (puerto 11434)
+#
+# Uso:
+#   docker-compose up          # Iniciar todos los servicios
+#   docker-compose up -d       # Iniciar en background
+#   docker-compose logs -f     # Ver logs en tiempo real
+#   docker-compose down        # Detener todos los servicios
+#
+# Comandos útiles:
+#   docker-compose ps          # Ver estado de servicios
+#   docker-compose restart     # Reiniciar servicios
+#   docker-compose exec backend sh   # Shell en el backend
+#   docker-compose exec ollama ollama list  # Listar modelos Ollama
+#
+# @see IT1-006 en guia-desarrollo-incremental-backend/iteracion-1/TAREAS.md
+# @see IT2-001 en guia-desarrollo-incremental-backend/iteracion-2/TAREAS.md
+
+version: '3.8'
+
+services:
+  # ==============================================
+  # Backend - NestJS Application
+  # ==============================================
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ouija-backend
+
+    # Puerto expuesto
+    ports:
+      - '3001:3001'
+
+    # Variables de entorno
+    environment:
+      # Server
+      - PORT=3001
+      - NODE_ENV=development
+
+      # Database (SQLite local en el container)
+      - DATABASE_URL=file:./prisma/dev.db
+
+      # Ollama (usa el nombre del servicio como hostname)
+      - OLLAMA_URL=http://ollama:11434
+      - OLLAMA_MODEL=qwen2.5:0.5b
+
+      # Groq (debe estar en .env)
+      - GROQ_API_KEY=${GROQ_API_KEY:-}
+      - GROQ_MODEL=llama-3.1-8b-instant
+
+      # CORS
+      - CORS_ORIGINS=http://localhost,http://localhost:80,http://localhost:5173,http://localhost:3000
+
+      # Logging
+      - LOG_LEVEL=debug
+
+    # Volúmenes para desarrollo (hot reload)
+    volumes:
+      - ./src:/app/src              # Código fuente
+      - ./prisma:/app/prisma        # Prisma schema y migraciones
+      - ./package.json:/app/package.json
+      - ./tsconfig.json:/app/tsconfig.json
+      - /app/node_modules           # Prevenir sobrescribir node_modules
+
+    # Comando de inicio (modo desarrollo con hot reload)
+    command: npm run start:dev
+
+    # Dependencias
+    depends_on:
+      - ollama
+
+    # Health check
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:3001/health']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+    # Restart policy
+    restart: unless-stopped
+
+    # Networks
+    networks:
+      - ouija-network
+
+  # ==============================================
+  # Ollama - Local AI Service
+  # ==============================================
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ouija-ollama
+
+    # Puerto expuesto
+    ports:
+      - '11434:11434'
+
+    # Volúmenes para persistir modelos
+    volumes:
+      - ollama-data:/root/.ollama
+
+    # Health check
+    healthcheck:
+      test: ['CMD', 'ollama', 'list']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+    # Restart policy
+    restart: unless-stopped
+
+    # Networks
+    networks:
+      - ouija-network
+
+    # Recursos (opcional - ajustar según tu máquina)
+    # deploy:
+    #   resources:
+    #     limits:
+    #       cpus: '2'
+    #       memory: 4G
+    #     reservations:
+    #       cpus: '1'
+    #       memory: 2G
+
+# ==============================================
+# Networks
+# ==============================================
+networks:
+  ouija-network:
+    driver: bridge
+
+# ==============================================
+# Volumes
+# ==============================================
+volumes:
+  # Volumen para persistir modelos de Ollama
+  ollama-data:
+    driver: local
+
+# ==============================================
+# NOTAS ADICIONALES
+# ==============================================
+#
+# 1. PRIMERA VEZ - Descargar modelo de Ollama:
+#    docker-compose exec ollama ollama pull qwen2.5:0.5b
+#
+# 2. CAMBIAR MODELO:
+#    - Edita OLLAMA_MODEL en environment
+#    - Descarga el nuevo modelo: docker-compose exec ollama ollama pull <modelo>
+#    - Reinicia: docker-compose restart backend
+#
+# 3. VER LOGS:
+#    docker-compose logs -f backend
+#    docker-compose logs -f ollama
+#
+# 4. LIMPIAR TODO:
+#    docker-compose down -v    # Elimina volúmenes también
+#
+# 5. REBUILD:
+#    docker-compose up --build
+#
+# 6. PRODUCCIÓN:
+#    Para producción, usa el Dockerfile optimizado y variables
+#    de entorno seguras. Este compose es solo para desarrollo local.
+#
+# 7. ALTERNATIVA SIN DOCKER COMPOSE:
+#    Si prefieres correr Ollama localmente sin Docker:
+#    - Instala Ollama: https://ollama.ai/download
+#    - Descarga modelo: ollama pull qwen2.5:0.5b
+#    - Corre Ollama: ollama serve
+#    - Cambia OLLAMA_URL a http://localhost:11434 en .env
+#    - Corre backend: npm run start:dev

@@ -1,0 +1,342 @@
+# Koyeb Configuration File
+# Ubicación: backend-simple/koyeb.yaml
+#
+# Este archivo define la configuración de deployment para Koyeb.
+# Koyeb lo lee automáticamente al hacer deploy desde Git.
+#
+# Documentación: https://www.koyeb.com/docs/build-and-deploy/koyeb-configuration-file
+
+# ========================================
+# Configuración de la App
+# ========================================
+app:
+  name: ouija-virtual-backend
+  description: Backend API para Ouija Virtual con triple fallback (Groq + Ollama + SQLite)
+
+# ========================================
+# Servicios
+# ========================================
+services:
+  - name: backend
+
+    # ========================================
+    # Configuración de Build
+    # ========================================
+    build:
+      # Tipo de build
+      type: buildpack  # Opciones: buildpack, dockerfile
+
+      # Si usas Dockerfile en lugar de buildpack:
+      # type: dockerfile
+      # dockerfile: Dockerfile
+      # context: .
+
+      # Buildpack settings (para deployment con buildpack)
+      buildpack:
+        # Comando de build
+        build_command: |
+          echo "🔨 Installing dependencies..."
+          npm ci
+          echo "🏗️ Building application..."
+          npm run build
+          echo "🗄️ Generating Prisma Client..."
+          npx prisma generate
+          echo "✅ Build completed!"
+
+        # Comando de ejecución
+        run_command: npm run start:prod
+
+      # Directorio de trabajo
+      working_directory: /workspace
+
+    # ========================================
+    # Configuración del Repositorio Git
+    # ========================================
+    git:
+      # Repositorio (reemplazar con tu repo)
+      repository: github.com/tu-usuario/ouija-virtual
+
+      # Rama a deployar
+      branch: main
+
+      # Path dentro del monorepo (si aplica)
+      workdir: backend-simple
+
+      # Auto-deploy en cada push
+      auto_deploy: true
+
+    # ========================================
+    # Configuración de la Instancia
+    # ========================================
+    instance:
+      # Tipo de instancia (nano, small, medium, large)
+      # Pricing: https://www.koyeb.com/pricing
+      type: nano  # 0.1 vCPU, 512MB RAM (Gratis en free tier)
+
+      # Regiones disponibles: fra (Frankfurt), was (Washington), sin (Singapore)
+      regions:
+        - fra  # Frankfurt (Europa)
+
+      # Número de instancias (escalado horizontal)
+      min: 1
+      max: 1  # En free tier, máximo 1 instancia
+
+    # ========================================
+    # Variables de Entorno
+    # ========================================
+    env:
+      # Node.js environment
+      - name: NODE_ENV
+        value: production
+
+      # Puerto (Koyeb requiere 8000)
+      - name: PORT
+        value: "8000"
+
+      # Base de datos SQLite (persistida en volumen)
+      - name: DATABASE_URL
+        value: file:/data/ouija.db
+
+      # Groq API (usar secret para seguridad)
+      - name: GROQ_API_KEY
+        secret: groq-api-key  # Crear secret en Koyeb dashboard
+
+      - name: GROQ_MODEL
+        value: llama-3.1-8b-instant
+
+      # Ollama (si tienes instancia externa)
+      - name: OLLAMA_URL
+        value: ""  # Dejar vacío o configurar URL externa
+
+      - name: OLLAMA_MODEL
+        value: qwen2.5:0.5b
+
+      # CORS
+      - name: CORS_ORIGINS
+        value: https://tu-frontend.vercel.app,https://ouija-virtual.com
+
+      # Logging
+      - name: LOG_LEVEL
+        value: info
+
+      # Rate Limiting
+      - name: RATE_LIMIT_TTL
+        value: "60000"
+
+      - name: RATE_LIMIT_MAX
+        value: "20"
+
+      # Prisma
+      - name: PRISMA_CLI_BINARY_TARGETS
+        value: native,debian-openssl-3.0.x
+
+      # Opcional: Ejecutar seed en primer deploy
+      - name: RUN_SEED
+        value: "false"  # Cambiar a "true" en primer deploy
+
+    # ========================================
+    # Puertos Expuestos
+    # ========================================
+    ports:
+      - port: 8000
+        protocol: http
+        public: true  # Hacer que el puerto sea accesible públicamente
+
+    # ========================================
+    # Health Checks
+    # ========================================
+    health_checks:
+      - type: http
+        http:
+          # Path del health check
+          path: /health
+
+          # Puerto a verificar
+          port: 8000
+
+          # Intervalo entre checks (segundos)
+          interval: 60
+
+          # Timeout del request (segundos)
+          timeout: 10
+
+          # Reintentos antes de marcar como unhealthy
+          retries: 3
+
+          # Período de gracia al iniciar (segundos)
+          grace_period: 90
+
+    # ========================================
+    # Volúmenes Persistentes
+    # ========================================
+    volumes:
+      # Volumen para base de datos SQLite
+      - name: database
+        path: /data
+        size: 1  # GB (1GB en free tier)
+
+    # ========================================
+    # Escalado Automático
+    # ========================================
+    autoscaling:
+      enabled: false  # No disponible en free tier
+
+      # Configuración para planes pagos:
+      # enabled: true
+      # min_replicas: 1
+      # max_replicas: 3
+      # target_cpu_percent: 70
+      # target_memory_percent: 80
+
+    # ========================================
+    # Configuración de Red
+    # ========================================
+    routes:
+      - path: /
+        port: 8000
+
+    # ========================================
+    # Comandos de Ciclo de Vida
+    # ========================================
+    lifecycle:
+      # Comando pre-deploy (ejecutado antes de iniciar)
+      pre_deploy:
+        - npx prisma migrate deploy
+        - echo "✅ Migrations completed"
+
+      # Comando post-deploy (ejecutado después de iniciar)
+      # post_deploy:
+      #   - echo "🚀 Application deployed successfully"
+
+# ========================================
+# Configuración Global
+# ========================================
+deployment:
+  # Strategy: rolling, recreate
+  strategy: rolling
+
+  # Timeout para deployment (segundos)
+  timeout: 300
+
+# ========================================
+# Secrets Requeridos
+# ========================================
+# Los siguientes secrets deben crearse en Koyeb Dashboard:
+# (Settings > Secrets > Create Secret)
+#
+# 1. groq-api-key
+#    - Nombre: groq-api-key
+#    - Valor: tu_api_key_de_groq_aqui
+#
+# 2. ollama-url (opcional)
+#    - Nombre: ollama-url
+#    - Valor: https://tu-ollama-instance.com
+#
+# ========================================
+
+# ========================================
+# Notas de Configuración
+# ========================================
+#
+# 📝 IMPORTANTE:
+#
+# 1. Koyeb Free Tier Límites:
+#    - 1 servicio web (HTTP/HTTPS)
+#    - 1 instancia nano (0.1 vCPU, 512MB RAM)
+#    - 1GB de volumen persistente
+#    - 100GB de bandwidth/mes
+#
+# 2. Puerto:
+#    - Koyeb REQUIERE que la app escuche en puerto 8000
+#    - No usar 3000 u otros puertos
+#
+# 3. Base de Datos:
+#    - SQLite se guarda en /data (volumen persistente)
+#    - Las migraciones se ejecutan en pre_deploy
+#
+# 4. Secrets:
+#    - NUNCA commitear API keys en este archivo
+#    - Usar Koyeb Secrets para datos sensibles
+#
+# 5. Health Checks:
+#    - El endpoint /health DEBE retornar 200 OK
+#    - Koyeb reiniciará el container si falla
+#
+# 6. Build Time:
+#    - Primer deploy: ~5-10 minutos
+#    - Deploys subsecuentes: ~2-5 minutos
+#
+# 7. Logs:
+#    - Ver en tiempo real: Koyeb Dashboard > Service > Logs
+#    - O usar: koyeb logs service backend -f
+#
+# 8. Dominios:
+#    - Auto-generado: ouija-virtual-backend-{org}.koyeb.app
+#    - Personalizado: Agregar en Koyeb Dashboard > Domains
+#
+# ========================================
+
+# ========================================
+# Ejemplo de Deployment Manual
+# ========================================
+#
+# Si prefieres usar Koyeb CLI en lugar de GitHub:
+#
+# 1. Instalar Koyeb CLI:
+#    npm install -g @koyeb/cli
+#
+# 2. Login:
+#    koyeb login
+#
+# 3. Deploy:
+#    koyeb service create backend \
+#      --app ouija-virtual-backend \
+#      --git github.com/tu-usuario/ouija-virtual \
+#      --git-branch main \
+#      --git-workdir backend-simple \
+#      --instance-type nano \
+#      --region fra \
+#      --port 8000:http \
+#      --env NODE_ENV=production \
+#      --env PORT=8000 \
+#      --env DATABASE_URL=file:/data/ouija.db \
+#      --secret GROQ_API_KEY=groq-api-key \
+#      --health-check-path /health
+#
+# 4. Ver logs:
+#    koyeb logs service backend -f
+#
+# 5. Ver status:
+#    koyeb service get backend
+#
+# ========================================
+
+# ========================================
+# Troubleshooting
+# ========================================
+#
+# ❌ Error: "Application failed to start"
+# ✅ Solución:
+#    1. Verificar logs: koyeb logs service backend
+#    2. Verificar que PORT=8000 está configurado
+#    3. Verificar que health check retorna 200
+#
+# ❌ Error: "Build failed"
+# ✅ Solución:
+#    1. Verificar package.json tiene script "build"
+#    2. Verificar que npm run build funciona localmente
+#    3. Verificar node version compatible
+#
+# ❌ Error: "Database migration failed"
+# ✅ Solución:
+#    1. Verificar schema.prisma está committed
+#    2. Verificar carpeta prisma/migrations/ existe
+#    3. Ejecutar npx prisma migrate deploy localmente
+#
+# ❌ Error: "Out of memory"
+# ✅ Solución:
+#    1. Reducir tamaño de dependencias
+#    2. Optimizar imports
+#    3. Considerar upgrade a instancia "small"
+#
+# ========================================

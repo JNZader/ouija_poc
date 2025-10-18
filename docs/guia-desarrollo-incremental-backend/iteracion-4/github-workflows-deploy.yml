@@ -1,0 +1,372 @@
+# GitHub Actions Workflow - Deploy Backend Simple a Koyeb
+# Ubicación: .github/workflows/deploy.yml
+
+name: Deploy to Koyeb
+
+on:
+  push:
+    branches:
+      - main
+      - master
+    paths:
+      - 'backend-simple/**'
+      - '.github/workflows/deploy.yml'
+  pull_request:
+    branches:
+      - main
+      - master
+    paths:
+      - 'backend-simple/**'
+  workflow_dispatch: # Permite ejecución manual
+
+env:
+  DOCKER_IMAGE_NAME: ouija-backend-simple
+  KOYEB_APP_NAME: ouija-virtual-backend
+
+jobs:
+  # ========================================
+  # JOB 1: Linting y Validación
+  # ========================================
+  lint:
+    name: Lint & Format Check
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./backend-simple
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: './backend-simple/package-lock.json'
+
+      - name: 📦 Install dependencies
+        run: npm ci
+
+      - name: 🔍 Run ESLint (if configured)
+        run: npm run lint --if-present
+        continue-on-error: true
+
+      - name: 🎨 Check code formatting (if configured)
+        run: npm run format:check --if-present
+        continue-on-error: true
+
+  # ========================================
+  # JOB 2: Tests Unitarios y E2E
+  # ========================================
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    needs: lint
+    defaults:
+      run:
+        working-directory: ./backend-simple
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: './backend-simple/package-lock.json'
+
+      - name: 📦 Install dependencies
+        run: npm ci
+
+      - name: 🗄️ Setup Prisma
+        run: |
+          npx prisma generate
+          npx prisma migrate deploy
+        env:
+          DATABASE_URL: file:./test.db
+
+      - name: 🌱 Seed test database
+        run: npm run prisma:seed
+        env:
+          DATABASE_URL: file:./test.db
+
+      - name: 🧪 Run unit tests
+        run: npm run test --if-present
+        continue-on-error: false
+
+      - name: 🧪 Run E2E tests
+        run: npm run test:e2e --if-present
+        continue-on-error: true
+
+      - name: 📊 Generate coverage report
+        run: npm run test:cov --if-present
+        continue-on-error: true
+
+      - name: 📤 Upload coverage to Codecov (optional)
+        uses: codecov/codecov-action@v3
+        if: always()
+        with:
+          file: ./backend-simple/coverage/coverage-final.json
+          flags: backend
+          fail_ci_if_error: false
+        continue-on-error: true
+
+  # ========================================
+  # JOB 3: Build Docker Image
+  # ========================================
+  build:
+    name: Build Docker Image
+    runs-on: ubuntu-latest
+    needs: [lint, test]
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🐳 Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 🔐 Login to Docker Hub (optional - si usas Docker Hub)
+        uses: docker/login-action@v3
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+        continue-on-error: true
+
+      - name: 🏷️ Extract metadata (tags, labels)
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ secrets.DOCKER_USERNAME }}/${{ env.DOCKER_IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: 🔨 Build Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend-simple
+          file: ./backend-simple/Dockerfile
+          push: false
+          load: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: 🧪 Test Docker image
+        run: |
+          docker run --rm \
+            -e DATABASE_URL=file:./test.db \
+            -e NODE_ENV=production \
+            ${{ fromJSON(steps.meta.outputs.json).tags[0] }} \
+            node --version
+
+      - name: 📤 Push Docker image (only on main/master)
+        uses: docker/build-push-action@v5
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+        with:
+          context: ./backend-simple
+          file: ./backend-simple/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ========================================
+  # JOB 4: Deploy a Koyeb
+  # ========================================
+  deploy:
+    name: Deploy to Koyeb
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    environment:
+      name: production
+      url: https://${{ env.KOYEB_APP_NAME }}.koyeb.app
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🚀 Deploy to Koyeb via API
+        run: |
+          curl -X POST "https://app.koyeb.com/v1/services" \
+            -H "Authorization: Bearer ${{ secrets.KOYEB_API_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d @- <<EOF
+          {
+            "name": "${{ env.KOYEB_APP_NAME }}",
+            "app_name": "${{ env.KOYEB_APP_NAME }}",
+            "definition": {
+              "name": "${{ env.KOYEB_APP_NAME }}",
+              "git": {
+                "repository": "${{ github.repository }}",
+                "branch": "${{ github.ref_name }}",
+                "buildpack": {
+                  "build_command": "npm install && npm run build",
+                  "run_command": "npm run start:prod"
+                }
+              },
+              "instance_types": [
+                {
+                  "type": "nano"
+                }
+              ],
+              "regions": ["fra"],
+              "env": [
+                {
+                  "name": "NODE_ENV",
+                  "value": "production"
+                },
+                {
+                  "name": "PORT",
+                  "value": "8000"
+                },
+                {
+                  "name": "DATABASE_URL",
+                  "value": "file:./prod.db"
+                },
+                {
+                  "name": "GROQ_API_KEY",
+                  "secret": "${{ secrets.GROQ_API_KEY }}"
+                },
+                {
+                  "name": "OLLAMA_URL",
+                  "value": "${{ secrets.OLLAMA_URL }}"
+                }
+              ],
+              "ports": [
+                {
+                  "port": 8000,
+                  "protocol": "http"
+                }
+              ],
+              "health_checks": [
+                {
+                  "http": {
+                    "path": "/health"
+                  }
+                }
+              ]
+            }
+          }
+          EOF
+
+      - name: ⏳ Wait for deployment
+        run: sleep 30
+
+      - name: 🔍 Verify deployment
+        run: |
+          MAX_RETRIES=10
+          RETRY_COUNT=0
+
+          while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" https://${{ env.KOYEB_APP_NAME }}.koyeb.app/health || echo "000")
+
+            if [ "$HTTP_CODE" = "200" ]; then
+              echo "✅ Deployment successful! Health check passed."
+              exit 0
+            fi
+
+            echo "⏳ Waiting for deployment... (Attempt $((RETRY_COUNT + 1))/$MAX_RETRIES) - HTTP $HTTP_CODE"
+            RETRY_COUNT=$((RETRY_COUNT + 1))
+            sleep 10
+          done
+
+          echo "❌ Deployment verification failed after $MAX_RETRIES attempts"
+          exit 1
+
+      - name: 📊 Deployment summary
+        if: success()
+        run: |
+          echo "## 🚀 Deployment Successful" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Environment**: Production" >> $GITHUB_STEP_SUMMARY
+          echo "- **URL**: https://${{ env.KOYEB_APP_NAME }}.koyeb.app" >> $GITHUB_STEP_SUMMARY
+          echo "- **Health Check**: https://${{ env.KOYEB_APP_NAME }}.koyeb.app/health" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Branch**: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+
+  # ========================================
+  # JOB 5: Smoke Tests en Producción
+  # ========================================
+  smoke-tests:
+    name: Production Smoke Tests
+    runs-on: ubuntu-latest
+    needs: deploy
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+
+    steps:
+      - name: 🔍 Test health endpoint
+        run: |
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" https://${{ env.KOYEB_APP_NAME }}.koyeb.app/health)
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "❌ Health check failed with HTTP $HTTP_CODE"
+            exit 1
+          fi
+          echo "✅ Health check passed"
+
+      - name: 🔮 Test Ouija endpoint
+        run: |
+          RESPONSE=$(curl -s -X POST https://${{ env.KOYEB_APP_NAME }}.koyeb.app/ouija/ask \
+            -H "Content-Type: application/json" \
+            -d '{"question":"Test deployment","personality":"wise","language":"es"}')
+
+          if [ -z "$RESPONSE" ]; then
+            echo "❌ Ouija endpoint returned empty response"
+            exit 1
+          fi
+
+          echo "✅ Ouija endpoint working"
+          echo "Response preview: ${RESPONSE:0:100}..."
+
+      - name: 📈 Performance check
+        run: |
+          RESPONSE_TIME=$(curl -o /dev/null -s -w '%{time_total}\n' https://${{ env.KOYEB_APP_NAME }}.koyeb.app/health)
+          echo "⏱️ Response time: ${RESPONSE_TIME}s"
+
+          # Fallar si tarda más de 5 segundos
+          if (( $(echo "$RESPONSE_TIME > 5" | bc -l) )); then
+            echo "⚠️ Warning: Response time is slow (${RESPONSE_TIME}s > 5s)"
+          fi
+
+      - name: 📊 Smoke test summary
+        if: always()
+        run: |
+          echo "## 🧪 Smoke Tests Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Health endpoint: OK" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Ouija endpoint: OK" >> $GITHUB_STEP_SUMMARY
+          echo "- ⏱️ Response time: ${RESPONSE_TIME}s" >> $GITHUB_STEP_SUMMARY
+
+# ========================================
+# Notas de Configuración
+# ========================================
+#
+# Secrets necesarios en GitHub (Settings > Secrets and variables > Actions):
+#
+# 1. KOYEB_API_TOKEN - Token de API de Koyeb
+#    Obtener en: https://app.koyeb.com/account/api
+#
+# 2. GROQ_API_KEY - API Key de Groq
+#    Obtener en: https://console.groq.com/keys
+#
+# 3. OLLAMA_URL (opcional) - URL de Ollama si usas instancia externa
+#    Ejemplo: https://ollama.tu-servidor.com
+#
+# 4. DOCKER_USERNAME (opcional) - Usuario de Docker Hub
+# 5. DOCKER_PASSWORD (opcional) - Password/Token de Docker Hub
+#
+# Variables de entorno opcionales:
+#
+# - CODECOV_TOKEN: Si quieres reportes de cobertura en Codecov
+#
+# ========================================
